@@ -1,0 +1,59 @@
+name: Strict Role Isolation
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  enforce-roles:
+    name: Validar permisos por rol (CODEOWNERS)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validar permisos dinámicos desde CODEOWNERS
+        shell: bash
+        run: |
+          ACTOR="${{ github.actor }}"
+          CODEOWNERS_FILE=".github/CODEOWNERS"
+
+          if [ ! -f "$CODEOWNERS_FILE" ]; then
+            CODEOWNERS_FILE="CODEOWNERS"
+          fi
+
+          echo "Analizando permisos para @$ACTOR usando $CODEOWNERS_FILE ..."
+
+          ALLOWED_PATHS=$(grep -E "@$ACTOR([[:space:]]|$)" "$CODEOWNERS_FILE" | awk '{print $1}' | sed 's/^\///')
+
+          if [ -z "$ALLOWED_PATHS" ]; then
+            echo "::error::@$ACTOR no figura como propietario de ninguna ruta en CODEOWNERS."
+            echo "Bloqueando el PR: este usuario no tiene permisos de edición asignados."
+            exit 1
+          fi
+
+          echo "Rutas permitidas para @$ACTOR:"
+          printf '%s\n' $ALLOWED_PATHS
+          echo "----------------------------------------"
+
+          CHANGED_FILES=$(git diff --name-only "origin/${{ github.base_ref }}" HEAD)
+
+          for FILE in $CHANGED_FILES; do
+            IS_ALLOWED=false
+            for PATH_PREFIX in $ALLOWED_PATHS; do
+              case "$FILE" in
+                "$PATH_PREFIX"*) IS_ALLOWED=true; break ;;
+              esac
+            done
+            if [ "$IS_ALLOWED" = false ]; then
+              echo "::error::@$ACTOR intentó modificar '$FILE', ruta fuera de sus permisos."
+              echo "Agrega a @$ACTOR como propietario en CODEOWNERS para esa ruta, o revierte el cambio."
+              exit 1
+            fi
+          done
+
+          echo "Validación de permisos exitosa. Todos los cambios están dentro de las rutas autorizadas."

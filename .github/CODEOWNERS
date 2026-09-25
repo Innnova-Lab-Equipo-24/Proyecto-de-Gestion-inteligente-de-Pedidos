@@ -1,0 +1,22 @@
+# CODEOWNERS — Gestor de Pedidos
+#
+# Reglas de propiedad del código. El último patrón que coincida gana.
+# `strict-roles.yml` usa este archivo para validar que cada PR solo toque
+# carpetas donde el autor figura como propietario.
+#
+# @rcrossa (Roberto Rossa) actúa como lead/mantenedor: es co-owner en todas
+# las áreas para no bloquear trabajo transversal.
+
+# Raíz y documentación
+README.md                 @rcrossa
+pull_request_template.md  @rcrossa
+/.github/                 @rcrossa
+
+# Áreas por rol
+/ux-ui/        @JulietaEscat @rcrossa
+/frontend/     @tomasgz7 @Oliver-92 @rcrossa
+/backend/      @Malmaraz1 @maximacenturion @rcrossa
+/data_analyst/ @rodrigoalcaraz @rcrossa
+/qa/           @Ryojix3 @rcrossa
+/docs/         @rodrigoalcaraz @rcrossa
+/infra/        @rcrossa

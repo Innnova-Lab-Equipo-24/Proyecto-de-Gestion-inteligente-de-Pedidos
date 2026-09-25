@@ -19,6 +19,8 @@ Una web para que los emprendedores dejen de manejar sus ventas entre notas, chat
 - [Hacia dónde puede crecer](#hacia-dónde-puede-crecer)
 - [Quiénes somos](#quiénes-somos)
 - [Instalación](#instalación)
+- [Estructura del repositorio](#estructura-del-repositorio)
+- [CI/CD (GitHub Actions)](#cicd-github-actions)
 
 ## De qué se trata
 
@@ -185,7 +187,7 @@ Una vez validado el flujo central, hay bastante para sumar, siempre cuidando que
 |---|---|---|
 | Rodrigo Alcaraz | [rodrigoalcaraz](https://www.linkedin.com/in/rodrigoalcaraz) | [rodrigoalcaraz](https://github.com/rodrigoalcaraz) |
 | Matias De vivo | - | - |
-| Roberto Rossa | - | - |
+| Roberto Rossa | - | [rcrossa](https://github.com/rcrossa) |
 
 ### QA Tester
 
@@ -197,4 +199,58 @@ Una vez validado el flujo central, hay bastante para sumar, siempre cuidando que
 
 ## Instalación
 
-Todavía no hay instrucciones porque estamos en planificación. La guía de instalación, variables de entorno y ejecución la vamos a sumar durante el Sprint 6.
+> Usamos **pnpm** (no npm ni yarn). Asegurate de tener Node.js y pnpm instalados.
+
+```bash
+# 1. Clonar el repositorio
+git clone <url-del-repo>
+cd <repo>
+
+# 2. Instalar pnpm (si no lo tenés)
+corepack enable
+# o bien: npm i -g pnpm
+
+# 3. Frontend
+cd frontend
+pnpm install
+pnpm dev        # levanta el servidor de desarrollo
+pnpm lint       # corre ESLint
+pnpm build      # compila para producción (tsc -b && vite build)
+```
+
+El backend (`backend/`) todavía está vacío (en planificación). Cuando se implemente,
+se sumarán sus propios comandos de instalación y ejecución.
+
+## Estructura del repositorio
+
+```
+.
+├── .github/
+│   ├── CODEOWNERS                    # Propietarios por carpeta (gobernanza de roles)
+│   └── workflows/
+│       ├── ci-cd.yml                 # Lint + build del frontend (pnpm)
+│       ├── strict-roles.yml          # Bloquea PRs fuera de los permisos del autor
+│       └── auto-move-issues.yml      # Mueve issues por el tablero de Projects v2
+├── frontend/                         # Vite + React 19 + TypeScript (pnpm)
+├── backend/                          # Node.js (pendiente de implementación)
+├── ux-ui/                            # Diseño y prototipos
+├── data_analyst/                     # Análisis de datos y métricas
+├── qa/                               # Pruebas y aseguramiento de calidad
+├── docs/                             # Documentación del proyecto
+├── infra/                            # Infraestructura y DevOps
+└── pull_request_template.md          # Plantilla de PRs
+```
+
+## CI/CD (GitHub Actions)
+
+| Workflow | Qué hace | Cuándo corre |
+| --- | --- | --- |
+| `ci-cd.yml` | Lint + build del frontend (pnpm) y placeholder del backend | `push` / `pull_request` a `main` y `develop` |
+| `strict-roles.yml` | Bloquea PRs que tocan carpetas donde el autor no es propietario en `CODEOWNERS` | `pull_request` a `main` y `develop` |
+| `auto-move-issues.yml` | Mueve issues por el tablero de Projects v2 según su ciclo de vida | issues, ramas, PRs y revisiones |
+
+Requisitos:
+- Secret `PROJECT_TOKEN` (PAT clásico con scopes `project` + `repo` + `read:org`) para `auto-move-issues.yml`.
+- El tablero es de organización (`Innnova-Lab-Equipo-24`, proyecto #2).
+
+Más detalles en [`.github/workflows/README.md`](.github/workflows/README.md).
