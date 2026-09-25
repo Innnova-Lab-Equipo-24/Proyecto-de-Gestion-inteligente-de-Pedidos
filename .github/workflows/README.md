@@ -28,8 +28,8 @@ vive en este repositorio (`repositorio/` en el workspace del sistema de agentes)
 ## Configuración
 
 1. Añadir el secret `PROJECT_TOKEN` en *Settings → Secrets and variables → Actions*.
-2. Verificar que los nombres de columna (`Backlog`, `Ready`, `In Progress`,
-   `In Review`, `In QA`, `Done`) coincidan con el tablero. Ajustarlos en `env` de
+2. Verificar que los nombres de columna (`Backlog`, `In progress`, `Ready`,
+   `In review`, `In QA`, `Done`) coincidan con el tablero. Ajustarlos en `env` de
    `auto-move-issues.yml` si difieren.
 3. `ci-cd.yml` incluye un job `deploy` comentado (Docker Hub + Azure). Activarlo
    cuando exista backend real + `Dockerfile` + infraestructura.
