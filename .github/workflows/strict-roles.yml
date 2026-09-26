@@ -14,7 +14,7 @@ jobs:
       # Lista de mantenedores (separados por espacio) que saltan la validación
       # de rutas. Permite a roles globales tocar cualquier carpeta sin quedar
       # bloqueados (p. ej. infraestructura transversal, directorios nuevos).
-      MAINTAINERS: 'rcrossa'
+      MAINTAINERS: 'rcrossa DalmiroLunaDapozo'
     steps:
       - name: Checkout del repositorio
         uses: actions/checkout@v4
