@@ -43,7 +43,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('frontend/pnpm-lock.yaml', 'backend/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
@@ -60,20 +60,28 @@ jobs:
         run: pnpm build
 
       # ---------------------------------------------------------------
-      # Backend (Node.js) — placeholder condicional.
-      # No falla mientras `backend/` esté vacío (solo .gitkeep).
-      # Cuando exista `backend/package.json`, descomentar la sección real.
+      # Backend (Node.js + Express + TypeScript, pnpm).
+      # Se ejecuta solo si existe backend/package.json (tolera backend vacío).
       # ---------------------------------------------------------------
-      - name: Backend (placeholder condicional)
-        shell: bash
-        run: |
-          if [ -f "backend/package.json" ]; then
-            echo "::notice::Backend detectado. Instalando y testeando..."
-            cd backend
-            # TODO: pnpm install --frozen-lockfile && pnpm lint && pnpm test
-          else
-            echo "::notice::Backend aún vacío (sin package.json). Saltando CI de backend."
-          fi
+      - name: Instalar dependencias del Backend
+        if: hashFiles('backend/package.json') != ''
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint del Backend
+        if: hashFiles('backend/package.json') != ''
+        working-directory: backend
+        run: pnpm lint
+
+      - name: Build del Backend
+        if: hashFiles('backend/package.json') != ''
+        working-directory: backend
+        run: pnpm build
+
+      - name: Test del Backend
+        if: hashFiles('backend/package.json') != ''
+        working-directory: backend
+        run: pnpm test
 
   # ---------------------------------------------------------------
   # Deploy (Docker Hub + Azure) — placeholder.

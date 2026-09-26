@@ -1,17 +1,17 @@
-# Documentación
+# Documentación — Gestor de Pedidos
 
-Documentación del proyecto **Gestor de Pedidos**.
+Índice de documentación del proyecto.
+
+## Guía de desarrollo
+
+La guía completa de cómo desarrollar está en **[`docs/development.md`](development.md)**.
+Incluye prerequisitos, clonado, entorno Docker, flujo de git/PR, roles y CI/CD.
 
 ## Contenido
 
-- Guías de instalación y uso.
-- Documentación de API y arquitectura.
+- [Guía de desarrollo](development.md) — cómo clonar, ejecutar y contribuir.
+- Documentación de API y arquitectura (a medida que crezca el backend).
 - Registros de decisiones y changelog.
-
-## Propietarios
-
-- `@rodrigoalcaraz`
-- `@rcrossa` (lead)
 
 ## Convención
 
