@@ -2,6 +2,9 @@
 
 <!-- Resumen claro de qué hace este PR y por qué. -->
 
+> **Flujo obligatorio**: este PR debe apuntar a `develop` (nunca a `main`/`develop` por push directo).
+> Requiere 1 aprobación + CI verde. Ver `docs/development.md`.
+
 ## Tipo de cambio
 
 - [ ] Nueva funcionalidad

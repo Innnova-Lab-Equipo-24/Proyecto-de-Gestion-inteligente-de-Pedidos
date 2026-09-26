@@ -11,7 +11,6 @@
 ## Propietarios
 
 - `@Ryojix3`
-- `@rcrossa` (lead)
 
 ## Flujo
 
