@@ -18,7 +18,10 @@ Una web para que los emprendedores dejen de manejar sus ventas entre notas, chat
 - [Plan de trabajo](#plan-de-trabajo)
 - [Hacia dónde puede crecer](#hacia-dónde-puede-crecer)
 - [Quiénes somos](#quiénes-somos)
+- [Guía de desarrollo](#guía-de-desarrollo)
 - [Instalación](#instalación)
+- [Estructura del repositorio](#estructura-del-repositorio)
+- [CI/CD (GitHub Actions)](#cicd-github-actions)
 
 ## De qué se trata
 
@@ -185,7 +188,7 @@ Una vez validado el flujo central, hay bastante para sumar, siempre cuidando que
 |---|---|---|
 | Rodrigo Alcaraz | [rodrigoalcaraz](https://www.linkedin.com/in/rodrigoalcaraz) | [rodrigoalcaraz](https://github.com/rodrigoalcaraz) |
 | Matias De vivo | - | - |
-| Roberto Rossa | - | - |
+| Roberto Rossa | - | [rcrossa](https://github.com/rcrossa) |
 
 ### QA Tester
 
@@ -195,6 +198,68 @@ Una vez validado el flujo central, hay bastante para sumar, siempre cuidando que
 | Florencia Lucero | - | - |
 | Heidi Zulay Ramirez Dugarte | - | - |
 
+## Guía de desarrollo
+
+La guía completa para clonar, ejecutar y contribuir (prerequisitos, entorno
+Docker, flujo de git/PR, roles y CI/CD) está en **[`docs/development.md`](docs/development.md)**.
+
 ## Instalación
 
-Todavía no hay instrucciones porque estamos en planificación. La guía de instalación, variables de entorno y ejecución la vamos a sumar durante el Sprint 6.
+> Usamos **pnpm** (npm y yarn están prohibidos). Asegurate de tener Node.js >= 22.12.0, pnpm 10.30.2 y Docker.
+
+```bash
+# 1. Clonar el repositorio
+git clone git@github.com:Innnova-Lab-Equipo-24/Proyecto-de-Gestion-inteligente-de-Pedidos.git
+cd Proyecto-de-Gestion-inteligente-de-Pedidos
+
+# 2. Habilitar pnpm (via corepack, sin npm)
+corepack enable
+corepack prepare pnpm@10.30.2 --activate
+
+# 3. Levantar el stack completo (frontend + backend) con Docker
+docker compose up
+#   Frontend → http://localhost:5173
+#   Backend  → http://localhost:3000  (GET /health → { "status": "ok" })
+```
+
+Para desarrollo local sin Docker (por servicio):
+
+```bash
+cd frontend && pnpm install && pnpm dev     # Vite dev server
+cd backend  && pnpm install && pnpm dev     # Express + TS (tsx watch)
+```
+
+## Estructura del repositorio
+
+```
+.
+├── .github/
+│   ├── CODEOWNERS                    # Propietarios por carpeta (gobernanza de roles)
+│   └── workflows/
+│       ├── ci-cd.yml                 # Lint + build del frontend (pnpm)
+│       ├── strict-roles.yml          # Bloquea PRs fuera de los permisos del autor
+│       └── auto-move-issues.yml      # Mueve issues por el tablero de Projects v2
+├── docker-compose.yml                # Orquesta frontend + backend (+ db opcional)
+├── frontend/                         # Vite + React 19 + TypeScript (pnpm)
+├── backend/                          # Node.js + Express + TypeScript (pnpm)
+├── ux-ui/                            # Diseño y prototipos
+├── data_analyst/                     # Análisis de datos y métricas
+├── qa/                               # Pruebas y aseguramiento de calidad
+├── docs/                             # Documentación del proyecto
+├── infra/                            # Infraestructura y DevOps
+└── pull_request_template.md          # Plantilla de PRs
+```
+
+## CI/CD (GitHub Actions)
+
+| Workflow | Qué hace | Cuándo corre |
+| --- | --- | --- |
+| `ci-cd.yml` | Lint + build del frontend (pnpm) y placeholder del backend | `push` / `pull_request` a `main` y `develop` |
+| `strict-roles.yml` | Bloquea PRs que tocan carpetas donde el autor no es propietario en `CODEOWNERS` | `pull_request` a `main` y `develop` |
+| `auto-move-issues.yml` | Mueve issues por el tablero de Projects v2 según su ciclo de vida | issues, ramas, PRs y revisiones |
+
+Requisitos:
+- Secret `PROJECT_TOKEN` (PAT clásico con scopes `project` + `repo` + `read:org`) para `auto-move-issues.yml`.
+- El tablero es de organización (`Innnova-Lab-Equipo-24`, proyecto #2).
+
+Más detalles en [`.github/workflows/README.md`](.github/workflows/README.md).
