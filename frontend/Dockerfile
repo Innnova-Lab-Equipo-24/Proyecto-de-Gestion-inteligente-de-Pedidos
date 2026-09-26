@@ -11,7 +11,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
 EXPOSE 5173
-CMD ["pnpm", "dev", "--", "--host", "0.0.0.0"]
+CMD ["pnpm", "exec", "vite", "--host", "0.0.0.0"]
 
 # ── Etapa de producción (build estático) ───────────────────────────────────
 FROM base AS build
