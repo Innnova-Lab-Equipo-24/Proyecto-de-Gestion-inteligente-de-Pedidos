@@ -37,8 +37,9 @@ vive en este repositorio (`repositorio/` en el workspace del sistema de agentes)
 ## Bypass de mantenedores (`strict-roles.yml`)
 
 `strict-roles.yml` define la lista `MAINTAINERS` en `env` del job. Cualquier
-actor que figure ahí (p. ej. `rcrossa`, el lead) salta la validación de rutas y
-puede tocar cualquier carpeta, incluidos directorios nuevos o archivos de raíz.
+actor que figure ahí (p. ej. `rcrossa`, el lead, y `DalmiroLunaDapozo`, el
+dueño del repositorio) salta la validación de rutas y puede tocar cualquier
+carpeta, incluidos directorios nuevos o archivos de raíz.
 
 Para sumar o quitar mantenedores, editar la línea `MAINTAINERS: '...'` en
 `strict-roles.yml` (usuarios separados por espacio).
