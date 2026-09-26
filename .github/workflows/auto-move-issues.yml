@@ -25,6 +25,7 @@ env:
   ORGANIZATION: Innnova-Lab-Equipo-24
   PROJECT_NUMBER: '2'
   QA_GITHUB_USERS: 'Ryojix3'
+  STATUS_FIELD_NAME: 'Status'
   COL_BACKLOG: 'Backlog'
   COL_READY: 'Ready'
   COL_IN_PROGRESS: 'In progress'
@@ -49,9 +50,12 @@ jobs:
         run: |
           QUERY='query($org:String!,$number:Int!){organization(login:$org){projectV2(number:$number){id fields(first:20){nodes{... on ProjectV2SingleSelectField{id name options{id name}}}}}}}'
           PROJECT_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.id')
-          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id')
-          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
-          ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .id')
+          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
+          ITEM_ID=$(gh api graphql -f query='query($p:ID!){node(id:$p){... on ProjectV2{items(first:100){nodes{id content{... on Issue{id}}}}}}}' -f p="$PROJECT_ID" --jq '.data.node.items.nodes[] | select(.content.id=="'"$ISSUE_NODE_ID"'") | .id')
+          if [ -z "$ITEM_ID" ]; then
+            ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+          fi
           gh api graphql -f query='mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$o}}){projectV2Item{id}}}' -f p="$PROJECT_ID" -f i="$ITEM_ID" -f f="$STATUS_FIELD_ID" -f o="$TARGET_OPTION_ID" > /dev/null
           echo "Issue movido a $TARGET_COLUMN."
 
@@ -71,9 +75,12 @@ jobs:
         run: |
           QUERY='query($org:String!,$number:Int!){organization(login:$org){projectV2(number:$number){id fields(first:20){nodes{... on ProjectV2SingleSelectField{id name options{id name}}}}}}}'
           PROJECT_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.id')
-          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id')
-          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
-          ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .id')
+          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
+          ITEM_ID=$(gh api graphql -f query='query($p:ID!){node(id:$p){... on ProjectV2{items(first:100){nodes{id content{... on Issue{id}}}}}}}' -f p="$PROJECT_ID" --jq '.data.node.items.nodes[] | select(.content.id=="'"$ISSUE_NODE_ID"'") | .id')
+          if [ -z "$ITEM_ID" ]; then
+            ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+          fi
           gh api graphql -f query='mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$o}}){projectV2Item{id}}}' -f p="$PROJECT_ID" -f i="$ITEM_ID" -f f="$STATUS_FIELD_ID" -f o="$TARGET_OPTION_ID" > /dev/null
           echo "Issue movido a $TARGET_COLUMN."
 
@@ -91,7 +98,7 @@ jobs:
           GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
           BRANCH_NAME: ${{ github.ref_name }}
         run: |
-          ISSUE_NUMBER=$(echo "$BRANCH_NAME" | grep -oE '[0-9]+' | head -n1)
+          ISSUE_NUMBER=$(echo "$BRANCH_NAME" | grep -oE '(^|/)[0-9]+(-|_|$)' | grep -oE '[0-9]+' | head -n1)
           if [ -z "$ISSUE_NUMBER" ]; then
             echo "::notice::No se pudo extraer un número de issue del nombre de rama '$BRANCH_NAME'. No se moverá ningún issue."
             exit 0
@@ -99,9 +106,12 @@ jobs:
           ISSUE_NODE_ID=$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER" --jq '.node_id')
           QUERY='query($org:String!,$number:Int!){organization(login:$org){projectV2(number:$number){id fields(first:20){nodes{... on ProjectV2SingleSelectField{id name options{id name}}}}}}}'
           PROJECT_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.id')
-          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id')
-          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
-          ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .id')
+          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
+          ITEM_ID=$(gh api graphql -f query='query($p:ID!){node(id:$p){... on ProjectV2{items(first:100){nodes{id content{... on Issue{id}}}}}}}' -f p="$PROJECT_ID" --jq '.data.node.items.nodes[] | select(.content.id=="'"$ISSUE_NODE_ID"'") | .id')
+          if [ -z "$ITEM_ID" ]; then
+            ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+          fi
           gh api graphql -f query='mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$o}}){projectV2Item{id}}}' -f p="$PROJECT_ID" -f i="$ITEM_ID" -f f="$STATUS_FIELD_ID" -f o="$TARGET_OPTION_ID" > /dev/null
           echo "Issue #$ISSUE_NUMBER movido a $TARGET_COLUMN."
 
@@ -127,10 +137,13 @@ jobs:
           fi
           QUERY='query($org:String!,$number:Int!){organization(login:$org){projectV2(number:$number){id fields(first:20){nodes{... on ProjectV2SingleSelectField{id name options{id name}}}}}}}'
           PROJECT_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.id')
-          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id')
-          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
+          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .id')
+          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
           for ISSUE_NODE_ID in $ISSUE_NODES; do
-            ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+            ITEM_ID=$(gh api graphql -f query='query($p:ID!){node(id:$p){... on ProjectV2{items(first:100){nodes{id content{... on Issue{id}}}}}}}' -f p="$PROJECT_ID" --jq '.data.node.items.nodes[] | select(.content.id=="'"$ISSUE_NODE_ID"'") | .id')
+            if [ -z "$ITEM_ID" ]; then
+              ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+            fi
             gh api graphql -f query='mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$o}}){projectV2Item{id}}}' -f p="$PROJECT_ID" -f i="$ITEM_ID" -f f="$STATUS_FIELD_ID" -f o="$TARGET_OPTION_ID" > /dev/null
           done
           echo "Issues vinculados movidos a $TARGET_COLUMN."
@@ -151,10 +164,11 @@ jobs:
         run: |
           case "$REVIEW_STATE" in
             approved)
-              case "$REVIEWER" in
-                $QA_GITHUB_USERS) TARGET_COLUMN="$COL_DONE" ;;
-                *) TARGET_COLUMN="$COL_IN_QA" ;;
-              esac
+              IS_QA=false
+              for QA_USER in $QA_GITHUB_USERS; do
+                if [ "$REVIEWER" = "$QA_USER" ]; then IS_QA=true; break; fi
+              done
+              if [ "$IS_QA" = true ]; then TARGET_COLUMN="$COL_DONE"; else TARGET_COLUMN="$COL_IN_QA"; fi
               ;;
             changes_requested) TARGET_COLUMN="$COL_IN_PROGRESS" ;;
             *) echo "::notice::Revisión '$REVIEW_STATE' no modifica el estado del issue."; exit 0 ;;
@@ -168,10 +182,13 @@ jobs:
           fi
           QUERY='query($org:String!,$number:Int!){organization(login:$org){projectV2(number:$number){id fields(first:20){nodes{... on ProjectV2SingleSelectField{id name options{id name}}}}}}}'
           PROJECT_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.id')
-          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id')
-          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
+          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .id')
+          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
           for ISSUE_NODE_ID in $ISSUE_NODES; do
-            ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+            ITEM_ID=$(gh api graphql -f query='query($p:ID!){node(id:$p){... on ProjectV2{items(first:100){nodes{id content{... on Issue{id}}}}}}}' -f p="$PROJECT_ID" --jq '.data.node.items.nodes[] | select(.content.id=="'"$ISSUE_NODE_ID"'") | .id')
+            if [ -z "$ITEM_ID" ]; then
+              ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+            fi
             gh api graphql -f query='mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$o}}){projectV2Item{id}}}' -f p="$PROJECT_ID" -f i="$ITEM_ID" -f f="$STATUS_FIELD_ID" -f o="$TARGET_OPTION_ID" > /dev/null
           done
           echo "Issues vinculados movidos a $TARGET_COLUMN."
@@ -198,10 +215,13 @@ jobs:
           fi
           QUERY='query($org:String!,$number:Int!){organization(login:$org){projectV2(number:$number){id fields(first:20){nodes{... on ProjectV2SingleSelectField{id name options{id name}}}}}}}'
           PROJECT_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.id')
-          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id')
-          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
+          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .id')
+          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
           for ISSUE_NODE_ID in $ISSUE_NODES; do
-            ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+            ITEM_ID=$(gh api graphql -f query='query($p:ID!){node(id:$p){... on ProjectV2{items(first:100){nodes{id content{... on Issue{id}}}}}}}' -f p="$PROJECT_ID" --jq '.data.node.items.nodes[] | select(.content.id=="'"$ISSUE_NODE_ID"'") | .id')
+            if [ -z "$ITEM_ID" ]; then
+              ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+            fi
             gh api graphql -f query='mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$o}}){projectV2Item{id}}}' -f p="$PROJECT_ID" -f i="$ITEM_ID" -f f="$STATUS_FIELD_ID" -f o="$TARGET_OPTION_ID" > /dev/null
           done
           echo "Issues vinculados movidos a $TARGET_COLUMN."
@@ -228,10 +248,13 @@ jobs:
           fi
           QUERY='query($org:String!,$number:Int!){organization(login:$org){projectV2(number:$number){id fields(first:20){nodes{... on ProjectV2SingleSelectField{id name options{id name}}}}}}}'
           PROJECT_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.id')
-          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id')
-          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
+          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .id')
+          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
           for ISSUE_NODE_ID in $ISSUE_NODES; do
-            ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+            ITEM_ID=$(gh api graphql -f query='query($p:ID!){node(id:$p){... on ProjectV2{items(first:100){nodes{id content{... on Issue{id}}}}}}}' -f p="$PROJECT_ID" --jq '.data.node.items.nodes[] | select(.content.id=="'"$ISSUE_NODE_ID"'") | .id')
+            if [ -z "$ITEM_ID" ]; then
+              ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+            fi
             gh api graphql -f query='mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$o}}){projectV2Item{id}}}' -f p="$PROJECT_ID" -f i="$ITEM_ID" -f f="$STATUS_FIELD_ID" -f o="$TARGET_OPTION_ID" > /dev/null
           done
           echo "Issues vinculados movidos a $TARGET_COLUMN."
@@ -251,11 +274,14 @@ jobs:
         run: |
           QUERY='query($org:String!,$number:Int!){organization(login:$org){projectV2(number:$number){id fields(first:20){nodes{... on ProjectV2SingleSelectField{id name options{id name}}}}}}}'
           PROJECT_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.id')
-          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id')
-          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
+          STATUS_FIELD_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .id')
+          TARGET_OPTION_ID=$(gh api graphql -f query="$QUERY" -f org="$ORGANIZATION" -f number="$PROJECT_NUMBER" --jq '.data.organization.projectV2.fields.nodes[] | select(.name=="'"$STATUS_FIELD_NAME"'") | .options[] | select(.name=="'"$TARGET_COLUMN"'") | .id')
           ISSUE_NODES=$(gh api "repos/$GITHUB_REPOSITORY/issues?state=open" --jq '.[].node_id')
           for ISSUE_NODE_ID in $ISSUE_NODES; do
-            ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+            ITEM_ID=$(gh api graphql -f query='query($p:ID!){node(id:$p){... on ProjectV2{items(first:100){nodes{id content{... on Issue{id}}}}}}}' -f p="$PROJECT_ID" --jq '.data.node.items.nodes[] | select(.content.id=="'"$ISSUE_NODE_ID"'") | .id')
+            if [ -z "$ITEM_ID" ]; then
+              ITEM_ID=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' -f p="$PROJECT_ID" -f c="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+            fi
             gh api graphql -f query='mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$o}}){projectV2Item{id}}}' -f p="$PROJECT_ID" -f i="$ITEM_ID" -f f="$STATUS_FIELD_ID" -f o="$TARGET_OPTION_ID" > /dev/null
           done
           echo "Issues existentes añadidos a $TARGET_COLUMN."

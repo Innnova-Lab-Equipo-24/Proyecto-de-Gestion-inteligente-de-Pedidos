@@ -40,7 +40,7 @@ jobs:
           printf '%s\n' $ALLOWED_PATHS
           echo "----------------------------------------"
 
-          CHANGED_FILES=$(git diff --name-only "origin/${{ github.base_ref }}" HEAD)
+          CHANGED_FILES=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
 
           for FILE in $CHANGED_FILES; do
             IS_ALLOWED=false
