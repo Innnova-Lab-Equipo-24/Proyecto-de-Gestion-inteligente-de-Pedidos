@@ -16,6 +16,7 @@
     "test": "echo \"Sin tests todavía\""
   },
   "dependencies": {
+    "dotenv": "^18.0.4",
     "express": "^4.21.2"
   },
   "devDependencies": {

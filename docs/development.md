@@ -46,28 +46,57 @@ git checkout develop && git pull
 
 ## 3. Entorno de desarrollo (Docker)
 
-Un solo comando levanta todo el stack (frontend + backend):
+Un solo comando levanta todo el stack (frontend + backend + base de datos):
 
 ```bash
-docker compose up
+docker compose -f infra/docker-compose.yml up
 ```
 
 - **Frontend**: Vite dev server → http://localhost:5173
 - **Backend**: Express API → http://localhost:3000
   - Health check: `GET http://localhost:3000/health` → `{ "status": "ok" }`
+- **Base de datos**: PostgreSQL 16 → http://localhost:5432
+  - Credenciales por defecto: usuario `app` / password `app` / base `pedidos`
 
-Comandos útiles:
+Comandos útiles (ejecutalos desde la raíz del repositorio):
 
 ```bash
-docker compose up -d          # levanta en segundo plano
-docker compose logs -f        # sigue los logs
-docker compose down           # detiene y elimina contenedores
-docker compose build          # reconstruye las imágenes
-docker compose --profile db up   # incluye PostgreSQL (servicio futuro)
+docker compose -f infra/docker-compose.yml up -d      # levanta en segundo plano
+docker compose -f infra/docker-compose.yml logs -f    # sigue los logs
+docker compose -f infra/docker-compose.yml down       # detiene y elimina contenedores
+docker compose -f infra/docker-compose.yml down -v    # además borra volúmenes (pierde los datos de la DB)
+docker compose -f infra/docker-compose.yml build      # reconstruye las imágenes
 ```
 
-> **Base de datos**: el servicio `db` (PostgreSQL 16) está detrás del profile `db`
-> y **no** arranca por defecto. Se activará cuando se implemente persistencia.
+> **Base de datos**: el servicio `db` (PostgreSQL 16) arranca junto con el stack
+> y sus datos persisten en el volumen `db_data`. Los Dockerfiles viven en `infra/`
+> (`backend.Dockerfile`, `frontend.Dockerfile`) y el orquestador en
+> `infra/docker-compose.yml`.
+
+### Variables de entorno
+
+Toda la configuración vive en un único `.env` en la **raíz del repositorio**.
+Copiá el template y ajustá lo que necesites:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Default | Descripción |
+| --- | --- | --- |
+| `POSTGRES_USER` | `app` | Usuario de PostgreSQL |
+| `POSTGRES_PASSWORD` | `app` | Password de PostgreSQL |
+| `POSTGRES_DB` | `pedidos` | Nombre de la base de datos |
+| `PORT` | `3000` | Puerto del servidor Express |
+| `NODE_ENV` | `development` | Entorno (`development` / `production` / `test`) |
+| `DATABASE_URL` | `postgres://app:app@localhost:5432/pedidos` | Conexión a PostgreSQL |
+
+> **Docker Compose** lee el `.env` de la raíz e inyecta las credenciales en el
+> contenedor `db` y la `DATABASE_URL` en el `backend` (apuntando al hostname `db`).
+> **Desarrollo local sin Docker**: el backend carga el mismo `.env` de la raíz
+> (via `dotenv`). Levantá solo la DB con
+> `docker compose -f infra/docker-compose.yml up db` y conectá con `localhost:5432`,
+> o usá una DB local.
 
 ---
 
@@ -137,6 +166,6 @@ Ningún PR puede mergear sin CI verde.
 | --- | --- |
 | Frontend | Vite + React 19 + TypeScript (pnpm) |
 | Backend | Node.js + Express + TypeScript (pnpm) |
-| Base de datos (futura) | PostgreSQL 16 |
+| Base de datos | PostgreSQL 16 |
 | Gestor de paquetes | **pnpm** (npm/yarn prohibidos) |
 | Entorno | Docker Compose |
