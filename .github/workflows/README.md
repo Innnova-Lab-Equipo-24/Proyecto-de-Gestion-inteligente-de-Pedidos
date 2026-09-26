@@ -8,7 +8,7 @@ vive en este repositorio (`repositorio/` en el workspace del sistema de agentes)
 | Archivo | Propósito | Disparador |
 | --- | --- | --- |
 | `ci-cd.yml` | Lint + build del frontend (pnpm) y placeholder del backend | `push` y `pull_request` a `main`/`develop` |
-| `strict-roles.yml` | Bloquea PRs que tocan carpetas fuera de los permisos del autor (según `CODEOWNERS`) | `pull_request` a `main`/`develop` |
+| `strict-roles.yml` | Bloquea PRs que tocan carpetas fuera de los permisos del autor (según `CODEOWNERS`); los mantenedores (`MAINTAINERS`) quedan exentos | `pull_request` a `main`/`develop` |
 | `auto-move-issues.yml` | Mueve issues por el tablero de Projects v2 según su ciclo de vida | `issues`, `create`, `pull_request`, `pull_request_review`, `workflow_dispatch` |
 
 ## Stack
@@ -33,3 +33,12 @@ vive en este repositorio (`repositorio/` en el workspace del sistema de agentes)
    `auto-move-issues.yml` si difieren.
 3. `ci-cd.yml` incluye un job `deploy` comentado (Docker Hub + Azure). Activarlo
    cuando exista backend real + `Dockerfile` + infraestructura.
+
+## Bypass de mantenedores (`strict-roles.yml`)
+
+`strict-roles.yml` define la lista `MAINTAINERS` en `env` del job. Cualquier
+actor que figure ahí (p. ej. `rcrossa`, el lead) salta la validación de rutas y
+puede tocar cualquier carpeta, incluidos directorios nuevos o archivos de raíz.
+
+Para sumar o quitar mantenedores, editar la línea `MAINTAINERS: '...'` en
+`strict-roles.yml` (usuarios separados por espacio).

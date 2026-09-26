@@ -10,6 +10,11 @@ jobs:
   enforce-roles:
     name: Validar permisos por rol (CODEOWNERS)
     runs-on: ubuntu-latest
+    env:
+      # Lista de mantenedores (separados por espacio) que saltan la validación
+      # de rutas. Permite a roles globales tocar cualquier carpeta sin quedar
+      # bloqueados (p. ej. infraestructura transversal, directorios nuevos).
+      MAINTAINERS: 'rcrossa'
     steps:
       - name: Checkout del repositorio
         uses: actions/checkout@v4
@@ -25,6 +30,14 @@ jobs:
           if [ ! -f "$CODEOWNERS_FILE" ]; then
             CODEOWNERS_FILE="CODEOWNERS"
           fi
+
+          # Bypass para mantenedores: saltan la validación de rutas.
+          for MAINTAINER in $MAINTAINERS; do
+            if [ "$ACTOR" = "$MAINTAINER" ]; then
+              echo "::notice::@$ACTOR es mantenedor. Bypass de validación de roles activado."
+              exit 0
+            fi
+          done
 
           echo "Analizando permisos para @$ACTOR usando $CODEOWNERS_FILE ..."
 
